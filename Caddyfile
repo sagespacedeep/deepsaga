@@ -1,0 +1,252 @@
+################################################################################
+# Deep Space - Caddy Configuration (Production)
+#
+# This Caddyfile configures:
+#   - Frontend static file serving (React SPA)
+#   - Backend API reverse proxy
+#   - Automatic HTTPS with Let's Encrypt
+#   - Security headers
+#   - Compression
+#   - CORS handling
+#
+# Usage:
+#   caddy run --config Caddyfile
+#   caddy reload --config Caddyfile
+#   caddy validate --config Caddyfile
+#
+# Documentation: https://caddyserver.com/docs/caddyfile
+################################################################################
+
+# Global options
+{
+	# Email for Let's Encrypt notifications
+	email admin@your-domain.com  # CHANGE THIS
+
+	# Admin API (optional, for metrics and management)
+	admin off  # Set to "on" and configure if needed
+
+	# Logging
+	log {
+		output file /var/log/caddy/access.log {
+			roll_size 10MB
+			roll_keep 10
+			roll_keep_for 30d
+		}
+		format json
+		level INFO
+	}
+}
+
+################################################################################
+# Production Site - Replace with your actual domain
+################################################################################
+your-domain.com www.your-domain.com {  # CHANGE THIS
+
+	# Enable automatic HTTPS
+	# Caddy will automatically obtain and renew SSL certificates
+
+	# Enable compression
+	encode gzip zstd
+
+	# Security headers
+	header {
+		# XSS Protection
+		X-XSS-Protection "1; mode=block"
+
+		# Prevent MIME type sniffing
+		X-Content-Type-Options "nosniff"
+
+		# Clickjacking protection
+		X-Frame-Options "SAMEORIGIN"
+
+		# Referrer policy
+		Referrer-Policy "strict-origin-when-cross-origin"
+
+		# Content Security Policy (adjust as needed)
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://sepolia.base.org https://base.org https://hermes.pyth.network wss:; frame-src 'none'; object-src 'none'"
+
+		# Permissions Policy (formerly Feature Policy)
+		Permissions-Policy "geolocation=(), microphone=(), camera=()"
+
+		# Remove Server header
+		-Server
+
+		# HSTS (enable after SSL is working)
+		# Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+	}
+
+	# Logging for this site
+	log {
+		output file /var/log/caddy/deepspace-access.log {
+			roll_size 10MB
+			roll_keep 10
+		}
+		format json
+	}
+
+	################################################################################
+	# API Reverse Proxy
+	################################################################################
+	handle /api/* {
+		# Reverse proxy to backend
+		reverse_proxy localhost:3000 {
+			# Health check
+			health_uri /health
+			health_interval 10s
+			health_timeout 5s
+			health_status 2xx
+
+			# Load balancing (if multiple instances)
+			lb_policy round_robin
+
+			# Request headers
+			header_up Host {host}
+			header_up X-Real-IP {remote}
+			header_up X-Forwarded-For {remote}
+			header_up X-Forwarded-Proto {scheme}
+			header_up X-Forwarded-Host {host}
+
+			# Response headers for CORS
+			header_down Access-Control-Allow-Origin *
+			header_down Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+			header_down Access-Control-Allow-Headers "Authorization, Content-Type, Accept, X-Requested-With"
+			header_down Access-Control-Allow-Credentials true
+			header_down Access-Control-Max-Age 3600
+
+			# Timeouts
+			transport http {
+				dial_timeout 5s
+				response_header_timeout 30s
+				read_timeout 30s
+				write_timeout 30s
+			}
+		}
+	}
+
+	################################################################################
+	# WebSocket Support (for future real-time features)
+	################################################################################
+	@websockets {
+		header Connection *Upgrade*
+		header Upgrade websocket
+	}
+	handle @websockets {
+		reverse_proxy localhost:3000
+	}
+
+	################################################################################
+	# Static Files (React SPA)
+	################################################################################
+	handle {
+		# Root directory for frontend build
+		root * /opt/deepspace/frontend/dist  # CHANGE THIS to your deployment path
+
+		# Try files in order, fallback to index.html for SPA routing
+		try_files {path} /index.html
+
+		# Serve files
+		file_server {
+			# Hide dotfiles
+			hide .* *.md
+
+			# Enable precompressed files
+			precompressed gzip br
+		}
+
+		# Cache control for static assets
+		@static {
+			path *.js *.css *.png *.jpg *.jpeg *.gif *.ico *.woff *.woff2 *.ttf *.svg *.webp
+		}
+		header @static Cache-Control "public, max-age=31536000, immutable"
+
+		# Cache control for HTML (no cache for SPA)
+		@html {
+			path *.html
+		}
+		header @html Cache-Control "no-cache, no-store, must-revalidate"
+	}
+
+	################################################################################
+	# Error Pages
+	################################################################################
+	handle_errors {
+		respond "{err.status_code} {err.status_text}"
+	}
+}
+
+################################################################################
+# Development/Staging Site (optional)
+################################################################################
+# staging.your-domain.com {
+# 	encode gzip
+#
+# 	handle /api/* {
+# 		reverse_proxy localhost:3001
+# 	}
+#
+# 	handle {
+# 		root * /opt/deepspace-staging/frontend/dist
+# 		try_files {path} /index.html
+# 		file_server
+# 	}
+# }
+
+################################################################################
+# Health Check Endpoint (optional, for monitoring)
+################################################################################
+# :8080 {
+# 	respond /health 200 {
+# 		body "OK"
+# 	}
+# }
+
+################################################################################
+# HTTP to HTTPS Redirect (automatic with Caddy)
+################################################################################
+# Caddy automatically redirects HTTP to HTTPS when a domain is specified
+
+################################################################################
+# Notes:
+#
+# 1. Domain Configuration:
+#    - Replace "your-domain.com" with your actual domain
+#    - Replace email address in global options
+#    - Ensure DNS A/AAAA records point to your server
+#
+# 2. SSL Certificates:
+#    - Caddy automatically obtains Let's Encrypt certificates
+#    - Certificates are stored in Caddy's data directory
+#    - Auto-renewal happens automatically
+#    - First run might take a few seconds to obtain certs
+#
+# 3. Path Configuration:
+#    - Update "/opt/deepspace" to your actual deployment path
+#    - Ensure paths match your PM2 ecosystem.config.js
+#
+# 4. Firewall Rules:
+#    - Open port 80 (HTTP) - for Let's Encrypt validation
+#    - Open port 443 (HTTPS) - for secure traffic
+#    - Keep port 3000 (backend) closed to external traffic
+#
+# 5. Testing:
+#    - Validate config: caddy validate --config Caddyfile
+#    - Test locally: caddy run --config Caddyfile
+#    - Check logs: tail -f /var/log/caddy/*.log
+#
+# 6. Security:
+#    - Enable HSTS header after SSL is confirmed working
+#    - Adjust CSP based on your actual content sources
+#    - Review and tighten CORS policies for production
+#    - Consider adding rate limiting for API endpoints
+#
+# 7. Performance:
+#    - Caddy automatically enables HTTP/2 and HTTP/3
+#    - Gzip and Brotli compression enabled
+#    - Static file caching configured
+#    - Precompressed file support enabled
+#
+# 8. Monitoring:
+#    - Access logs: /var/log/caddy/deepspace-access.log
+#    - Backend health: /api/health
+#    - Caddy metrics available via admin API (if enabled)
+################################################################################
