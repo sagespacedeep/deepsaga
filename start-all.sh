@@ -28,11 +28,11 @@ echo ""
 echo -e "${YELLOW}[1/3]${NC} Starting Docker containers..."
 cd "$PROJECT_ROOT"
 
-if [ -f "deploy/docker-compose.production.yml" ]; then
-    docker-compose -f deploy/docker-compose.production.yml up -d
+if [ -f "deploy/docker compose.production.yml" ]; then
+    docker compose -f deploy/docker compose.production.yml up -d
     echo -e "  ${GREEN}✓${NC} PostgreSQL and Redis started"
 else
-    echo -e "  ${YELLOW}⚠${NC} docker-compose.production.yml not found"
+    echo -e "  ${YELLOW}⚠${NC} docker compose.production.yml not found"
 fi
 
 # Wait for services to be ready
@@ -42,7 +42,7 @@ sleep 5
 # Step 2: Check Docker status
 echo ""
 echo -e "${YELLOW}[2/3]${NC} Checking Docker containers..."
-docker-compose -f deploy/docker-compose.production.yml ps
+docker compose -f deploy/docker compose.production.yml ps
 echo ""
 
 # Step 3: Start PM2 processes

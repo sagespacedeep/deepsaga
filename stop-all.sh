@@ -40,11 +40,11 @@ echo ""
 echo -e "${YELLOW}[2/2]${NC} Stopping Docker containers..."
 cd "$PROJECT_ROOT"
 
-if [ -f "deploy/docker-compose.production.yml" ]; then
-    docker-compose -f deploy/docker-compose.production.yml stop
+if [ -f "deploy/docker compose.production.yml" ]; then
+    docker compose -f deploy/docker compose.production.yml stop
     echo -e "  ${GREEN}✓${NC} Docker containers stopped"
 else
-    echo -e "  ${YELLOW}⚠${NC} docker-compose.production.yml not found"
+    echo -e "  ${YELLOW}⚠${NC} docker compose.production.yml not found"
 fi
 
 echo ""
@@ -56,7 +56,7 @@ echo -e "${BLUE}Note:${NC} Docker containers are stopped but not removed."
 echo -e "${BLUE}Data volumes are preserved.${NC}"
 echo ""
 echo -e "${BLUE}To completely remove containers:${NC}"
-echo -e "  docker-compose -f deploy/docker-compose.production.yml down"
+echo -e "  docker compose -f deploy/docker compose.production.yml down"
 echo ""
 echo -e "${BLUE}To restart services:${NC}"
 echo -e "  ./deploy/start-all.sh"

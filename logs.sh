@@ -65,18 +65,18 @@ case $SERVICE in
         ;;
     postgres)
         cd "$PROJECT_ROOT"
-        docker-compose -f deploy/docker-compose.production.yml logs -f postgres
+        docker compose -f deploy/docker compose.production.yml logs -f postgres
         ;;
     redis)
         cd "$PROJECT_ROOT"
-        docker-compose -f deploy/docker-compose.production.yml logs -f redis
+        docker compose -f deploy/docker compose.production.yml logs -f redis
         ;;
     pm2-all|all)
         pm2 logs
         ;;
     docker-all)
         cd "$PROJECT_ROOT"
-        docker-compose -f deploy/docker-compose.production.yml logs -f
+        docker compose -f deploy/docker compose.production.yml logs -f
         ;;
     *)
         echo -e "${RED}Unknown service: $SERVICE${NC}"

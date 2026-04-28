@@ -64,13 +64,20 @@ if [ "$EUID" -eq 0 ]; then
 fi
 
 # Check required commands
-for cmd in docker docker-compose pm2 node npm caddy unzip; do
+for cmd in docker pm2 node npm caddy unzip; do
     if ! command -v $cmd &> /dev/null; then
         log "${RED}✗ Error: $cmd is not installed${NC}"
         exit 1
     fi
     log "  ${GREEN}✓${NC} $cmd installed"
 done
+
+# Check docker compose (v2 with space)
+if ! docker compose version &> /dev/null; then
+    log "${RED}✗ Error: docker compose is not available${NC}"
+    exit 1
+fi
+log "  ${GREEN}✓${NC} docker compose installed"
 
 # Check Node.js version
 NODE_VERSION=$(node -v | cut -d'v' -f2 | cut -d'.' -f1)
@@ -232,7 +239,7 @@ if [ ! -f "deploy/docker-compose.production.yml" ]; then
 fi
 
 log "  ${BLUE}→${NC} Starting PostgreSQL and Redis..."
-docker-compose -f deploy/docker-compose.production.yml up -d
+docker compose -f deploy/docker-compose.production.yml up -d
 
 # Wait for services to be healthy
 log "  ${BLUE}→${NC} Waiting for database to be ready..."
@@ -335,7 +342,7 @@ pm2 list
 
 # Check Docker status
 log "  ${BLUE}→${NC} Checking Docker containers..."
-docker-compose -f deploy/docker-compose.production.yml ps
+docker compose -f deploy/docker-compose.production.yml ps
 
 log ""
 
@@ -372,7 +379,7 @@ log "${BLUE}Useful Commands:${NC}"
 log "  • View logs:     pm2 logs"
 log "  • Restart:       pm2 restart ecosystem.config.js"
 log "  • Stop all:      pm2 stop ecosystem.config.js"
-log "  • Docker logs:   docker-compose -f deploy/docker-compose.production.yml logs -f"
+log "  • Docker logs:   docker compose -f deploy/docker-compose.production.yml logs -f"
 log "  • Rollback:      tar -xzf $BACKUP_PATH -C $DEPLOYMENT_ROOT"
 log ""
 log "${GREEN}═══════════════════════════════════════════════════════════${NC}"

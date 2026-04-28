@@ -42,11 +42,11 @@ echo ""
 echo -e "${YELLOW}[2/2]${NC} Restarting Docker containers..."
 cd "$PROJECT_ROOT"
 
-if [ -f "deploy/docker-compose.production.yml" ]; then
-    docker-compose -f deploy/docker-compose.production.yml restart
+if [ -f "deploy/docker compose.production.yml" ]; then
+    docker compose -f deploy/docker compose.production.yml restart
     echo -e "  ${GREEN}✓${NC} Docker containers restarted"
 else
-    echo -e "  ${YELLOW}⚠${NC} docker-compose.production.yml not found"
+    echo -e "  ${YELLOW}⚠${NC} docker compose.production.yml not found"
 fi
 
 # Wait for services to be ready
@@ -62,5 +62,5 @@ echo -e "${BLUE}Service Status:${NC}"
 pm2 list
 echo ""
 echo -e "${BLUE}Docker Status:${NC}"
-docker-compose -f deploy/docker-compose.production.yml ps
+docker compose -f deploy/docker compose.production.yml ps
 echo ""
